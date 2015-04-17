@@ -8,31 +8,75 @@ use std::io::Read;
 use std::io::Cursor;
 
 enum Opcode {
-    Add = 0,
+    ADD,
+    ADDI,
 }
 
 /* I-type instruction struct. */
+// struct IType {
+//     opcode: Opcode,
+//     rs: u8,
+//     rt: u8,
+//     immediate: i16,
+// }
+//
+// /* J-type instruction struct. */
+// struct JType {
+//     opcode: Opcode,
+//     target: i32,
+// }
+//
+// /* R-type instruction struct. */
+// struct RType {
+//     opcode: Opcode,
+//     rs: u8,
+//     rt: u8,
+//     rd: u8,
+//     shamt: u8,
+//     func: u8,
+// }
+
 struct IType {
-    Opcode opcode,
-    u8 rs,
-    u8 rt,
-    i16 immediate,
+    opcode: Opcode,
+    rs: u8,
+    rt: u8,
+    immediate: i16,
 }
 
-/* J-type instruction struct. */
-struct  JType {
-    Opcode opcode,
-    i32 target,
+impl IType {
+    fn new(instr: u32) -> IType {
+        /* IType instruction. */
+    }
 }
 
-/* R-type instruction struct. */
+struct JType {
+    opcode: Opcode,
+    target: i32,
+}
+
 struct RType {
-    Opcode opcode,
-    u8 rs,
-    u8 rt,
-    u8 rd,
-    u8 shamt,
-    u8 func,
+    opcode: Opcode,
+    rs: u8,
+    rt: u8,
+    rd: u8,
+    shamt: u8,
+    func: u8,
+}
+
+enum Instruction {
+    IType,
+    JType,
+    RType,
+}
+
+fn decode(instr: u32) {
+    /* Determine the type of instruction. */
+    let op: u8 = ((instr >> 24) & 0x3F) as u8;
+    let Instruction instr = match op {
+        0 => println!("Add found."),
+        _ => println!("Unrecognized opcode."),
+    }
+    println!("{}", op);
 }
 
 fn main() {
@@ -56,6 +100,8 @@ fn main() {
     let mut buf = Cursor::new(&bytes[..]);
     let num = buf.read_u32::<LittleEndian>().unwrap();
     println!("{}", num);
+
+    decode(0b110110000000000000000000000000);
 
     // println!("{}", byte);
     //
