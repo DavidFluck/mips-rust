@@ -7,76 +7,28 @@ use std::path::Path;
 use std::io::Read;
 use std::io::Cursor;
 
-enum Opcode {
-    ADD,
-    ADDI,
-}
-
-/* I-type instruction struct. */
-// struct IType {
-//     opcode: Opcode,
-//     rs: u8,
-//     rt: u8,
-//     immediate: i16,
-// }
-//
-// /* J-type instruction struct. */
-// struct JType {
-//     opcode: Opcode,
-//     target: i32,
-// }
-//
-// /* R-type instruction struct. */
-// struct RType {
-//     opcode: Opcode,
-//     rs: u8,
-//     rt: u8,
-//     rd: u8,
-//     shamt: u8,
-//     func: u8,
-// }
-
-struct IType {
-    opcode: Opcode,
-    rs: u8,
-    rt: u8,
-    immediate: i16,
-}
-
-impl IType {
-    fn new(instr: u32) -> IType {
-        /* IType instruction. */
-    }
-}
-
-struct JType {
-    opcode: Opcode,
-    target: i32,
-}
-
-struct RType {
-    opcode: Opcode,
-    rs: u8,
-    rt: u8,
-    rd: u8,
-    shamt: u8,
-    func: u8,
-}
-
 enum Instruction {
-    IType,
-    JType,
-    RType,
+    IType(u8, u8, u8, i16),
+    JType(u8, i32),
+    RType(u8, u8, u8, u8, u8, u8),
 }
 
-fn decode(instr: u32) {
-    /* Determine the type of instruction. */
-    let op: u8 = ((instr >> 24) & 0x3F) as u8;
-    let Instruction instr = match op {
-        0 => println!("Add found."),
-        _ => println!("Unrecognized opcode."),
+impl Instruction {
+    fn new(instr: u32) -> Instruction {
+        let op: u8 = ((instr >> 26) & 0x3F) as u8;
+        match instr {
+            0b000000 => {
+                /* IType instruction. */
+                let opcode: u8 = ((instr.clone() >> 26) & 0x3F) as u8;
+                let rs: u8 = ((instr.clone() >> 21) & 0x1F) as u8;
+                let rt: u8 = ((instr.clone() >> 16) & 0x1F) as u8;
+                let immediate: i16 = (instr.clone() & 0xFFFF) as i16;
+
+                Instruction::IType(opcode, rs, rt, immediate)
+            },
+            _ => panic!("Unrecognized opcode."),
+        }
     }
-    println!("{}", op);
 }
 
 fn main() {
@@ -101,13 +53,5 @@ fn main() {
     let num = buf.read_u32::<LittleEndian>().unwrap();
     println!("{}", num);
 
-    decode(0b110110000000000000000000000000);
-
-    // println!("{}", byte);
-    //
-    // for x in buf.iter() {
-    //     print!("{:02x} ", x as i32);
-    // }
-    //
-    // println!("");
+    let instruction = Instruction::new(0b00000000100001010011000000100000);
 }
