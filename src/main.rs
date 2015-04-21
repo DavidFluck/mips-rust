@@ -7,6 +7,12 @@ use std::path::Path;
 use std::io::Read;
 use std::io::Cursor;
 
+const ADD: u8 = 0x20;
+const ADDU: u8 = 0x21;
+const AND: u8 = 0x24;
+const DIV: u8 = 0x1A;
+const DIVU: u8 = 0x1B;
+
 enum Instruction {
     IType(u8, u8, u8, i16),
     JType(u8, i32),
@@ -50,16 +56,16 @@ impl Instruction {
         println!("Op: {:08b}", op);
         match op {
             /* Special opcode. */
-            0b000000 => {
+            0x0 => {
                 let funct: u8 = (instr.clone() & 0x3F) as u8;
                 match funct {
                     /* ADD */
-                    0b100000 => {
-                        intToRType(instr)
-                    },
+                    ADD | ADDU | AND => { intToRType(instr) },
                     _ => panic!("Unrecognized funct."),
                 }
             },
+            0x8 | 0x9 => { intToIType(instr) },
+
             _ => panic!("Unrecognized opcode."),
         }
     }
