@@ -29,9 +29,15 @@ fn opcodeToString(opcode: u8) -> &'static str {
         AND => "AND",
         DIV => "DIV",
         DIVU => "DIVU",
+        _ => panic!("Unrecognized opcode."),
+    }
+}
+
+fn functToString(funct: u8) -> &'static str {
+    match funct {
         ADDI => "ADDI",
         ADDIU => "ADDIU",
-        _ => panic!("Unrecognized opcode."),
+        _ => panic!("Unrecognized funct code."),
     }
 }
 
@@ -46,7 +52,7 @@ impl fmt::Display for Instruction {
         match *self {
             /* We need to check for the special opcode, since then we have to use funct to decide which instruction we have. */
             Instruction::RType(opcode, rs, rt, rd, shamt, funct) if opcode == SPECIAL => {
-                write!(fmt, "{} ${}, ${}, ${}", opcodeToString(funct), rs, rt, rd)
+                write!(fmt, "{} ${}, ${}, ${}", functToString(funct), rs, rt, rd)
             },
             _ => panic!("BLAM"),
         }
