@@ -2,21 +2,55 @@ extern crate byteorder;
 
 use byteorder::{LittleEndian, ReadBytesExt};
 use std::error::Error;
+use std::fmt;
 use std::fs::File;
 use std::path::Path;
 use std::io::Read;
 use std::io::Cursor;
 
+/* Funct codes. */
+const SPECIAL: u8 = 0x0;
 const ADD: u8 = 0x20;
 const ADDU: u8 = 0x21;
 const AND: u8 = 0x24;
 const DIV: u8 = 0x1A;
 const DIVU: u8 = 0x1B;
 
+/* Opcodes. */
+const ADDI: u8 = 0x8;
+const ADDIU: u8 = 0x9;
+
+/* TODO: Add function for bit shifting and masking. */
+
+fn opcodeToString(opcode: u8) -> &'static str {
+    match opcode {
+        ADD => "ADD",
+        ADDU => "ADDU",
+        AND => "AND",
+        DIV => "DIV",
+        DIVU => "DIVU",
+        ADDI => "ADDI",
+        ADDIU => "ADDIU",
+        _ => panic!("Unrecognized opcode."),
+    }
+}
+
 enum Instruction {
     IType(u8, u8, u8, i16),
     JType(u8, i32),
     RType(u8, u8, u8, u8, u8, u8),
+}
+
+impl fmt::Display for Instruction {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            /* We need to check for the special opcode, since then we have to use funct to decide which instruction we have. */
+            Instruction::RType(opcode, rs, rt, rd, shamt, funct) if opcode == SPECIAL => {
+                write!(fmt, "{} ${}, ${}, ${}", opcodeToString(funct), rs, rt, rd)
+            },
+            _ => panic!("BLAM"),
+        }
+    }
 }
 
 fn intToIType(instr: u32) -> Instruction {
@@ -53,10 +87,9 @@ impl Instruction {
     fn new(instr: u32) -> Instruction {
         /* Now we can pass the unmodified instruction around. */
         let op: u8 = ((instr.clone() >> 26) & 0x3F) as u8;
-        println!("Op: {:08b}", op);
         match op {
             /* Special opcode. */
-            0x0 => {
+            SPECIAL => {
                 let funct: u8 = (instr.clone() & 0x3F) as u8;
                 match funct {
                     /* ADD */
@@ -64,7 +97,7 @@ impl Instruction {
                     _ => panic!("Unrecognized funct."),
                 }
             },
-            0x8 | 0x9 => { intToIType(instr) },
+            ADDI | ADDIU => { intToIType(instr) },
 
             _ => panic!("Unrecognized opcode."),
         }
@@ -93,6 +126,7 @@ fn main() {
     let num = buf.read_u32::<LittleEndian>().unwrap();
     println!("{}", num);
 
+    /* Should print ADD $4, $5, $6. */
     let instruction = Instruction::new(0b00000000100001010011000000100000 as u32);
-    println!("{:06b}", match instruction { Instruction::RType(_, _, _, _, _, funct) => funct, _ => panic!("Unrecognized taco."), });
+    println!("{}", instruction);
 }
