@@ -28,6 +28,7 @@ const OR: u8 = 0x25;
 const SLL: u8 = 0x0;
 const SLLV: u8 = 0x4;
 const SLT: u8 = 0xA;
+const SLTU: u8 = 0x2B;
 const SRA: u8 = 0x3;
 const SRAV: u8 = 0x7;
 const SRL: u8 = 0x2;
@@ -61,7 +62,6 @@ const SB: u8 = 0x28;
 const SH: u8 = 0x29;
 const SLTI: u8 = 0xA;
 const SLTIU: u8 = 0xB;
-const SLTU: u8 = 0x2B;
 const SPECIAL: u8 = 0x0;
 const SW: u8 = 0x2B;
 const SWL: u8 = 0x2A;
@@ -151,8 +151,9 @@ impl Instruction {
             SPECIAL => {
                 let funct: u8 = (instr.clone() & 0x3F) as u8;
                 match funct {
-                    /* ADD */
-                    ADD | ADDU | AND => { intToRType(instr) },
+                    ADD | ADDU | AND | BREAK | DIV | DIVU | JALR | JR | MFHI | MFLO |
+                    MTHI | MTLO | MULT | MULTU | NOR | OR | SLL | SLLV | SLT | SLTU |
+                    SRA | SRAV | SRL | SRLV | SUB | SUBU | SYSCALL | XOR => { intToRType(instr) },
                     _ => panic!("Unrecognized funct."),
                 }
             },
