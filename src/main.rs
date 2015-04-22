@@ -9,16 +9,70 @@ use std::io::Read;
 use std::io::Cursor;
 
 /* Funct codes. */
-const SPECIAL: u8 = 0x0;
 const ADD: u8 = 0x20;
 const ADDU: u8 = 0x21;
 const AND: u8 = 0x24;
+const BREAK: u8 = 0xD;
 const DIV: u8 = 0x1A;
 const DIVU: u8 = 0x1B;
+const JALR: u8 = 0x9;
+const JR: u8 = 0x8;
+const MFHI: u8 = 0x10;
+const MFLO: u8 = 0x12;
+const MTHI: u8 = 0x11;
+const MTLO: u8 = 0x13;
+const MULT: u8 = 0x18;
+const MULTU: u8 = 0x19;
+const NOR: u8 = 0x27;
+const OR: u8 = 0x25;
+const SLL: u8 = 0x0;
+const SLLV: u8 = 0x4;
+const SLT: u8 = 0xA;
+const SRA: u8 = 0x3;
+const SRAV: u8 = 0x7;
+const SRL: u8 = 0x2;
+const SRLV: u8 = 0x6;
+const SUB: u8 = 0x22;
+const SUBU: u8 = 0x23;
+const SYSCALL: u8 = 0xC;
+const XOR: u8 = 0x26;
 
 /* Opcodes. */
 const ADDI: u8 = 0x8;
 const ADDIU: u8 = 0x9;
+const ANDI: u8 = 0xC;
+const BEQ: u8 = 0x4;
+const BGTZ: u8 = 0x7;
+const BLEZ: u8 = 0x6;
+const BNE: u8 = 0x5;
+const REGIMM: u8 = 0x1;
+const J: u8 = 0x2;
+const JAL: u8 = 0x3;
+const LB: u8 = 0x20;
+const LBU: u8 = 0x24;
+const LH: u8 = 0x21;
+const LHU: u8 = 0x25;
+const LUI: u8 = 0xF;
+const LW: u8 = 0x23;
+const LWL: u8 = 0x22;
+const LWR: u8 = 0x26;
+const ORI: u8 = 0xD;
+const SB: u8 = 0x28;
+const SH: u8 = 0x29;
+const SLTI: u8 = 0xA;
+const SLTIU: u8 = 0xB;
+const SLTU: u8 = 0x2B;
+const SPECIAL: u8 = 0x0;
+const SW: u8 = 0x2B;
+const SWL: u8 = 0x2A;
+const SWR: u8 = 0x2E;
+const XORI: u8 = 0xE;
+
+/* Branch codes. */
+const BGEZ: u8 = 0x1;
+const BGEZAL: u8 = 0x11;
+const BLTZ: u8 = 0x0;
+const BLTZAL: u8 = 0x10;
 
 /* TODO: Add function for bit shifting and masking. */
 
@@ -91,7 +145,6 @@ fn intToRType(instr: u32) -> Instruction {
 
 impl Instruction {
     fn new(instr: u32) -> Instruction {
-        /* Now we can pass the unmodified instruction around. */
         let op: u8 = ((instr.clone() >> 26) & 0x3F) as u8;
         match op {
             /* Special opcode. */
@@ -131,6 +184,8 @@ fn main() {
     let mut buf = Cursor::new(&bytes[..]);
     let num = buf.read_u32::<LittleEndian>().unwrap();
     println!("{}", num);
+
+    let mut regFile: [i32; 32] = [0; 32];
 
     /* Should print ADD $4, $5, $6. */
     let instruction = Instruction::new(0b00000000100001010011000000100000 as u32);
