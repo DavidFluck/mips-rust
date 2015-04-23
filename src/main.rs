@@ -4,6 +4,7 @@ use byteorder::{LittleEndian, ReadBytesExt};
 use std::error::Error;
 use std::fmt;
 use std::fs::File;
+use std::fs::Metadata;
 use std::path::Path;
 use std::io::Read;
 use std::io::Cursor;
@@ -46,7 +47,6 @@ const BEQ: u8 = 0x4;
 const BGTZ: u8 = 0x7;
 const BLEZ: u8 = 0x6;
 const BNE: u8 = 0x5;
-const REGIMM: u8 = 0x1;
 const J: u8 = 0x2;
 const JAL: u8 = 0x3;
 const LB: u8 = 0x20;
@@ -58,6 +58,7 @@ const LW: u8 = 0x23;
 const LWL: u8 = 0x22;
 const LWR: u8 = 0x26;
 const ORI: u8 = 0xD;
+const REGIMM: u8 = 0x1;
 const SB: u8 = 0x28;
 const SH: u8 = 0x29;
 const SLTI: u8 = 0xA;
@@ -76,22 +77,71 @@ const BLTZAL: u8 = 0x10;
 
 /* TODO: Add function for bit shifting and masking. */
 
-fn opcodeToString(opcode: u8) -> &'static str {
-    match opcode {
+fn functToString(funct: u8) -> &'static str {
+    match funct {
         ADD => "ADD",
         ADDU => "ADDU",
         AND => "AND",
+        BREAK => "BREAK",
         DIV => "DIV",
         DIVU => "DIVU",
-        _ => panic!("Unrecognized opcode."),
+        JALR => "JALR",
+        JR => "JR",
+        MFHI => "MFHI",
+        MFLO => "MFLO",
+        MTHI => "MTHI",
+        MTLO => "MTLO",
+        MULT => "MULT",
+        MULTU => "MULTU",
+        NOR => "NOR",
+        OR => "OR",
+        SLL => "SLL",
+        SLLV => "SLLV",
+        SLT => "SLT",
+        SLTU => "SLTU",
+        SRA => "SRA",
+        SRAV => "SRAV",
+        SRL => "SRL",
+        SRLV => "SRLV",
+        SUB => "SUB",
+        SUBU => "SUBU",
+        SYSCALL => "SYSCALL",
+        XOR => "XOR",
+        _ => panic!("Unrecognized funct code."),
     }
 }
 
-fn functToString(funct: u8) -> &'static str {
-    match funct {
+fn opcodeToString(opcode: u8) -> &'static str {
+    match opcode {
         ADDI => "ADDI",
         ADDIU => "ADDIU",
-        _ => panic!("Unrecognized funct code."),
+        ANDI => "ANDI",
+        BEQ => "BEQ",
+        BGTZ => "BGTZ",
+        BLEZ => "BLEZ",
+        BNE => "BNE",
+        REGIMM => "REGIMM",
+        J => "J",
+        JAL => "JAL",
+        LB => "LB",
+        LBU => "LBU",
+        LH => "LH",
+        LHU => "LHU",
+        LUI => "LUI",
+        LW => "LW",
+        LWL => "LWL",
+        LWR => "LWR",
+        ORI => "ORI",
+        SB => "SB",
+        SH => "SH",
+        SLTI => "SLTI",
+        SLTIU => "SLTIU",
+        SPECIAL => "SPECIAL",
+        SW => "SW",
+        SWL => "SWL",
+        SWR => "SWR",
+        XORI => "XORI",
+        _ => panic!("Unrecognized opcode."),
     }
 }
 
@@ -147,7 +197,7 @@ impl Instruction {
     fn new(instr: u32) -> Instruction {
         let op: u8 = ((instr.clone() >> 26) & 0x3F) as u8;
         match op {
-            /* Special opcode. */
+            /* Special opcode; R-Type instructions. */
             SPECIAL => {
                 let funct: u8 = (instr.clone() & 0x3F) as u8;
                 match funct {
@@ -157,7 +207,14 @@ impl Instruction {
                     _ => panic!("Unrecognized funct."),
                 }
             },
-            ADDI | ADDIU => { intToIType(instr) },
+
+            /* I-Type opcodes. */
+            ADDI | ADDIU | ANDI | BEQ | BGTZ | BLEZ | BNE | LB | LBU | LH | LHU |
+            LUI | LW | LWL | LWR | ORI | REGIMM | SB | SH | SLTI | SLTIU | SW |
+            SWL | SWR => { intToIType(instr) },
+
+            /* J-Type opcodes. */
+            J | JAL => {intToJType(instr) },
 
             _ => panic!("Unrecognized opcode."),
         }
@@ -171,24 +228,30 @@ fn main() {
 
     /* Open the path in read-only mode, returns `IoResult<File>`. */
     let mut file = match File::open(&path) {
-        // The `desc` field of `IoError` is a string that describes the error
         Err(why) => panic!("Couldn't open {}: {}", display, Error::description(&why)),
         Ok(file) => file,
     };
 
-    let mut bytes: [u8; 4] = [0; 4];
-    let result = match File::read(&mut file, &mut bytes) {
-        Err(why) => panic!("Couldn't read bytes: {}", Error::description(&why)),
-        Ok(bytes) => bytes,
-    };
+    /* Loop through each four-byte word of the binary until we hit EOF. */
+    loop {
+        let mut bytes: [u8; 4] = [0; 4];
 
-    let mut buf = Cursor::new(&bytes[..]);
-    let num = buf.read_u32::<LittleEndian>().unwrap();
-    println!("{}", num);
+        let result = match File::read(&mut file, &mut bytes) {
+            Err(why) => panic!("Could not read file: {}", Error::description(&why)),
+            Ok(bytes) if bytes > 0 => bytes,
+            Ok(_) => break,
+        };
+
+        let mut buf = Cursor::new(&bytes[..]);
+
+        let num = match buf.read_u32::<LittleEndian>() {
+            Err(why) => panic!("Blew up: {}", Error::description(&why)),
+            Ok(num) => num,
+        };
+
+        let instruction = Instruction::new(num);
+        println!("{}", instruction);
+    }
 
     let mut regFile: [i32; 32] = [0; 32];
-
-    /* Should print ADD $4, $5, $6. */
-    let instruction = Instruction::new(0b00000000100001010011000000100000 as u32);
-    println!("{}", instruction);
 }
