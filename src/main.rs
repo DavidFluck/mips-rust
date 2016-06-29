@@ -1,3 +1,7 @@
+#![allow(dead_code)]
+#![allow(unused_variables)]
+#![allow(non_snake_case)]
+
 extern crate byteorder;
 
 use byteorder::{LittleEndian, ReadBytesExt};
@@ -154,48 +158,52 @@ enum Instruction {
 impl fmt::Display for Instruction {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            /* We need to check for the special opcode, since then we have to use funct to decide which instruction we have. */
-            Instruction::RType(opcode, rs, rt, rd, shamt, funct) if opcode == SPECIAL => {
+            Instruction::RType(opcode, rs, rt, rd, shamt, funct) => {
                 write!(fmt, "{} ${}, ${}, ${}", functToString(funct), rs, rt, rd)
             },
-            _ => panic!("BLAM"),
+            Instruction::IType(opcode, rs, rt, immediate) => {
+                write!(fmt, "{} ${}, ${}, {:#X}", opcodeToString(opcode), rs, rt, immediate)
+            },
+            Instruction::JType(opcode, target) => {
+                write!(fmt, "{} {:#X}", opcodeToString(opcode), target)
+            }
         }
     }
 }
 
 fn intToIType(instr: u32) -> Instruction {
     /* IType instruction. */
-    let opcode: u8 = ((instr.clone() >> 26) & 0x3F) as u8;
-    let rs: u8 = ((instr.clone() >> 21) & 0x1F) as u8;
-    let rt: u8 = ((instr.clone() >> 16) & 0x1F) as u8;
-    let immediate: i16 = (instr.clone() & 0xFFFF) as i16;
+    let opcode: u8 = ((instr >> 26) & 0x3F) as u8;
+    let rs: u8 = ((instr >> 21) & 0x1F) as u8;
+    let rt: u8 = ((instr >> 16) & 0x1F) as u8;
+    let immediate: i16 = (instr & 0xFFFF) as i16;
 
     Instruction::IType(opcode, rs, rt, immediate)
 }
 
 fn intToJType(instr: u32) -> Instruction {
     /* JType instruction. */
-    let opcode: u8 = ((instr.clone() >> 26) & 0x3F) as u8;
-    let target: i32 = (instr.clone() & 0x3FFFFFF) as i32;
+    let opcode: u8 = ((instr >> 26) & 0x3F) as u8;
+    let target: i32 = (instr & 0x3FFFFFF) as i32;
 
     Instruction::JType(opcode, target)
 }
 
 fn intToRType(instr: u32) -> Instruction {
     /* RType instruction. */
-    let opcode: u8 = ((instr.clone() >> 26) & 0x3F) as u8;
-    let rs: u8 = ((instr.clone() >> 21) & 0x1F) as u8;
-    let rt: u8 = ((instr.clone() >> 16) & 0x1F) as u8;
-    let rd: u8 = ((instr.clone() >> 11) & 0x1F) as u8;
-    let shamt: u8 = ((instr.clone() >> 6) & 0x1F) as u8;
-    let funct: u8 = (instr.clone() & 0x3F) as u8;
+    let opcode: u8 = ((instr >> 26) & 0x3F) as u8;
+    let rs: u8 = ((instr >> 21) & 0x1F) as u8;
+    let rt: u8 = ((instr >> 16) & 0x1F) as u8;
+    let rd: u8 = ((instr >> 11) & 0x1F) as u8;
+    let shamt: u8 = ((instr >> 6) & 0x1F) as u8;
+    let funct: u8 = (instr & 0x3F) as u8;
 
     Instruction::RType(opcode, rs, rt, rd, shamt, funct)
 }
 
 impl Instruction {
     fn new(instr: u32) -> Instruction {
-        let op: u8 = ((instr.clone() >> 26) & 0x3F) as u8;
+        let op: u8 = ((instr >> 26) & 0x3F) as u8;
         match op {
             /* Special opcode; R-Type instructions. */
             SPECIAL => {
